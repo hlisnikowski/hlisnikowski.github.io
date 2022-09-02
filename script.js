@@ -87,9 +87,7 @@ function createInsert(insertCount,table,columns){
         if(col.dataType == 'BOOL' || col.dataType == 'INT'){
             result += getRandomValue(col,i);     
         } else {
-            result += "'";
-            result += getRandomValue(col,i);
-            result += "'";
+            result += "'" + getRandomValue(col,i) + "'";
         }
         if(array.length -1 != index){
             result += ",";
@@ -127,9 +125,9 @@ function getRandomValue(column,index){
         case "PIN":
             return getPin();
         case "COUNTRY":
-            return "Czech"
+            return getNationality();
         case "BOOL":
-            return "true"
+            return  Math.floor(Math.random() * 2) == 1 ? "true" : "false";
         default:
            return  ""
     }
@@ -141,6 +139,11 @@ function getPin(){
         result +=  numbers[Math.floor(Math.random() * numbers.length)]  
     }
     return result;
+}
+
+function getNationality(){
+    let arr = ["Czechia", "Hungary", "Germany", "Slovakia", "Italy", "Poland"];
+    return arr[Math.floor(Math.random() * arr.length)]
 }
 
 function getPhone(){
