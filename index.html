@@ -1,83 +1,74 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Anek+Telugu&display=swap" rel="stylesheet">
-    <title>Document</title>
-</head>
-<body>
-   <div class="top-nav">
-        <a href="#">Home</a>
-   </div>
-   <header>
-    <div class="title">
-        <h1>SQL Generator</h1>
-    </div>
-   </header>
-   <div class="container">
-    <div class="left-side">
-        <div class="table-area">
-            <label>table:
-                <input type="text" id="table-name">
-            </label>
-        </div>
-        <div class="h-line"></div>
-        <div class="column-area">
-            <div class="field">
-                <div class="special">
-                    <input name="primary" type="checkbox">Primary
-                    <input name="increment" type="checkbox">Auto Increment
-                    <input name="nullable" type="checkbox">Nullable
+    <head>
+        <meta charset="UTF-8" />
+        <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Document</title>
+        <link rel="stylesheet" href="style.css" />
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+        <link
+            href="https://fonts.googleapis.com/css2?family=Encode+Sans+Semi+Expanded:wght@200;500;700&display=swap"
+            rel="stylesheet"
+        />
+    </head>
+    <body>
+        <div class="container">
+            <form id="form">
+                <div class="upload-file">
+                    <input type="file" id="file" accept=".json" />
+                    <button type="submit">UPLOAD TASK</button>
                 </div>
-                <label>column:</label>
-                    <input style="width: 190px;" type="column-name" required>
-                <select name="datatype" >
-                    <option value="">INT</option>
-                    <option value="">TEXT</option>
-                    <option value="">VARCHAR(10)</option>
-                    <option value="">VARCHAR(25)</option>
-					<option value="">VARCHAR(255)</option>
-                    <option value="">BOOL</option>
-                </select>
-                <select name="gen-type" >
-                    <option value="">NONE</option>
-                    <option value="">FIRSTNAME</option>
-                    <option value="">LASTNAME</option>
-                    <option value="">FULLNAME</option>
-                    <option value="">AGE</option>
-                    <option value="">PHONE</option>
-                    <option value="">PIN</option>
-                    <option value="">COUNTRY</option>
-                    <option value="">BOOL</option>
-                </select>
-                <div class="h-line"></div>
-            </div>
-            <div id="another-field"></div>
-            <div id="randomizer" class="randomizer">
-               <h4>Random Values:</h4>
-               <input name="random" class="random" type="checkbox"> 
-               <h4> Amount of Inserts:</h4>
-               <input type="number" name="insert-count" value="10" min="0" max="20">
-            </div>
-            <div class="h-line"></div>
-            <div class="generate-btns">
-                <button onclick="addColumn();event.preventDefault();">Add column</button>
-                <button onclick="removeColumn();event.preventDefault();">Remove column</button>
-                <button onclick="generate();event.preventDefault();">Generate</button>
-            </div>
-         </div> 
-    </div>
-    <div class="right-side">
-        <label>Result</label>
-         <textarea name="" id="result-area" cols="50" rows="15"></textarea>
-    
-    </div>   
-    </div>
-</body>
-<script src="script.js"></script>
+                <div class="question box">
+                    <h3>TASK</h3>
+                    <p id="task"></p>
+                </div>
+                <div class="input box">
+                    <h3>INPUT</h3>
+                    <p id="input"></p>
+                </div>
+                <div class="output box">
+                    <h3>OUTPUT</h3>
+                    <p id="output"></p>
+                </div>
+            </form>
+        </div>
+    </body>
+
+    <script>
+        const form = document.getElementById("form");
+
+        const compile = (text) => {
+            text = text.replaceAll("--", "<strong>");
+            text = text.replaceAll("++", "</strong>");
+            text = text.replaceAll("//", "</br>");
+            return text;
+        };
+
+        form.addEventListener("submit", function (event) {
+            // Prevent default HTML page refresh
+            event.preventDefault();
+
+            // Select file upload element
+            const uploadElement = document.getElementById("file");
+            // Extract the file (for a single file, always 0 in the list)
+            const file = uploadElement.files[0];
+            let reader = new FileReader();
+            reader.onload = logFile;
+            // Read the file
+            reader.readAsText(file);
+        });
+
+        function logFile(event) {
+            const result = event.target.result;
+            const data = JSON.parse(result);
+            const taskP = document.getElementById("task");
+            const inputP = document.getElementById("input");
+            const output = document.getElementById("output");
+            taskP.innerHTML = compile(data.task);
+            inputP.innerHTML = compile(data.input);
+            output.innerHTML = compile(data.output);
+        }
+    </script>
 </html>
