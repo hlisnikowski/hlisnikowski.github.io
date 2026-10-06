@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>TinyAdventurer</title>
+    <meta name="description" content="TinyAdventurer – 2D pixelová adventura: ostrov, jeskyně, crafting. Testovací verze v prohlížeči." />
+    <!-- relativní base: hra běží v kořeni (github.io) i v podsložce / iframu (itch.io) -->
+    <base href="./" />
+    <link rel="icon" href="favicon.ico" />
+    <link href="css/app.css" rel="stylesheet" />
+</head>
+<body>
+    <!-- ═══ Úvodní stránka – texty uprav tady. Hra se stáhne až po kliknutí na „Hrát". ═══ -->
+    <main id="landing">
+        <header class="hero">
+            <h1>Tiny Adventurer</h1>
+            <p class="tagline">2D pixelová adventura – ostrov, jeskyně a crafting.</p>
+            <button id="play" type="button">▶ Hrát</button>
+            <p class="hint">Testovací verze v prohlížeči · první spuštění stáhne asi 10&nbsp;MB · pro PC s klávesnicí</p>
+        </header>
+
+        <section>
+            <h2>O hře</h2>
+            <p>
+                Ostrov s jedním vstupem do jeskyně. Jeskyně se generují náhodně – čím hlouběji, tím těžší
+                nepřátelé a lepší kořist. Těž suroviny, vyráběj nástroje a stav.
+            </p>
+            <p class="note">Hra je ve vývoji. Uložené hry zůstávají v tomhle prohlížeči (vymazání dat webu je smaže).</p>
+        </section>
+
+        <section>
+            <h2>Ovládání</h2>
+            <table class="keys">
+                <tr><td>Pohyb</td><td><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd></td></tr>
+                <tr><td>Interakce (těžba, sklizeň, truhla)</td><td><kbd>E</kbd></td></tr>
+                <tr><td>Útok</td><td><kbd>Mezerník</kbd></td></tr>
+                <tr><td>Inventář</td><td><kbd>Q</kbd></td></tr>
+                <tr><td>Action bar – použít slot</td><td><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd></td></tr>
+                <tr><td>Action bar – přepnout stránku</td><td><kbd>R</kbd></td></tr>
+                <tr><td>Minion – přivolat / nabídka</td><td><kbd>P</kbd></td></tr>
+                <tr><td>Menu: potvrdit / zpět, pauza</td><td><kbd>Enter</kbd> / <kbd>Esc</kbd></td></tr>
+                <tr><td>Rychlé uložení / načtení</td><td><kbd>F5</kbd> / <kbd>F9</kbd></td></tr>
+            </table>
+        </section>
+
+        <footer>© Tiny Adventurer</footer>
+    </main>
+
+    <!-- Hra: Blazor do #app vykreslí plátno (Pages/Index.razor). Překryv #boot zůstává nad ním, dokud hra
+         nevykreslí první snímek – start hry (načtení dat a textur) trvá pár sekund a jinak by byl vidět černý obraz. -->
+    <div id="app"></div>
+    <div id="boot" hidden>
+        <div class="title">Tiny Adventurer</div>
+        <div class="bar"><div class="fill"></div></div>
+        <div id="boot-text">Stahuji hru…</div>
+    </div>
+
+    <div id="blazor-error-ui">
+        Ve hře nastala chyba.
+        <a href="" class="reload">Načíst znovu</a>
+        <a class="dismiss">✕</a>
+    </div>
+
+    <script src="js/storage.js"></script>
+    <script src="_framework/blazor.webassembly.js" autostart="false"></script>
+
+    <!-- KNI (BlazorGL) – JS strana WebGL, vstupu a XHR -->
+    <script src="_content/nkast.Wasm.JSInterop/js/JSObject.10.0.3.js"></script>
+    <script src="_content/nkast.Wasm.Dom/js/Window.10.0.3.js"></script>
+    <script src="_content/nkast.Wasm.Dom/js/Document.10.0.3.js"></script>
+    <script src="_content/nkast.Wasm.Dom/js/Navigator.10.0.3.js"></script>
+    <script src="_content/nkast.Wasm.Dom/js/Gamepad.10.0.3.js"></script>
+    <script src="_content/nkast.Wasm.Dom/js/Media.10.0.3.js"></script>
+    <script src="_content/nkast.Wasm.XHR/js/XHR.10.0.3.js"></script>
+    <script src="_content/nkast.Wasm.Canvas/js/Canvas.10.0.3.js"></script>
+    <script src="_content/nkast.Wasm.Canvas/js/CanvasGLContext.10.0.3.js"></script>
+    <script src="_content/nkast.Wasm.Audio/js/Audio.10.0.3.js"></script>
+    <script src="_content/nkast.Wasm.XR/js/XR.10.0.3.js"></script>
+
+    <script type="module">
+        // Brotli: publish vedle každého souboru .NET runtime/knihoven položí .br (~5× menší). GitHub Pages
+        // ani itch.io ho samy neposílají, takže ho stáhneme a rozbalíme tady. Bez .br (dotnet run) se
+        // stáhne původní soubor. Jen typy, které Blazor bere jako data – JS moduly musí zůstat URL.
+        const BROTLI_TYPES = ['dotnetwasm', 'assembly', 'pdb', 'globalization', 'icu'];
+
+        let brotli;   // dekodér se stáhne až po kliknutí na „Hrát" (úvodní stránka ho nepotřebuje)
+        async function loadCompressed(type, defaultUri) {
+            const response = await fetch(defaultUri + '.br', { cache: 'no-cache' });
+            if (!response.ok) return fetch(defaultUri, { cache: 'no-cache' });
+            const bytes = new Int8Array(await response.arrayBuffer());
+            // server, který .br sám označí jako Content-Encoding: br, ho prohlížeči už rozbalil
+            const encoding = response.headers.get('content-encoding') || '';
+            const body = encoding.includes('br') ? bytes : (await brotli).BrotliDecode(bytes);
+            const contentType = type === 'dotnetwasm' ? 'application/wasm' : 'application/octet-stream';
+            return new Response(body, { headers: { 'content-type': contentType } });
+        }
+
+        let started = false;
+        function startGame() {
+            if (started) return;
+            started = true;
+            brotli = import('./js/brotli-decode.min.js');
+            document.getElementById('landing').hidden = true;
+            document.getElementById('boot').hidden = false;
+            document.documentElement.classList.add('playing');
+            window.scrollTo(0, 0);
+            Blazor.start({
+                loadBootResource: (type, name, defaultUri, integrity) =>
+                    BROTLI_TYPES.includes(type) ? loadCompressed(type, defaultUri) : undefined
+            });
+        }
+
+        document.getElementById('play').addEventListener('click', startGame);
+        // odkaz rovnou do hry (itch.io iframe, testy): …/index.html#play
+        if (location.hash === '#play') startGame();
+    </script>
+
+    <script>
+        // Herní smyčka: prohlížeč volá Tick každý snímek (Pages/Index.razor.cs).
+        // První tick hru postaví (pár sekund) – až potom zmizí překryv #boot.
+        let firstTick = true;
+        function tickJS() {
+            window.theInstance.invokeMethod('TickDotNet');
+            if (firstTick) {
+                firstTick = false;
+                document.getElementById('boot').hidden = true;
+            }
+            window.requestAnimationFrame(tickJS);
+        }
+
+        function fitCanvas() {
+            var canvas = document.getElementById('theCanvas');
+            var holder = document.getElementById('canvasHolder');
+            if (!canvas || !holder) return;
+            canvas.width = holder.clientWidth;
+            canvas.height = holder.clientHeight;
+        }
+
+        window.initRenderJS = (instance) => {
+            window.theInstance = instance;
+            fitCanvas();
+            var canvas = document.getElementById('theCanvas');
+            canvas.addEventListener("contextmenu", e => e.preventDefault());
+            canvas.focus();
+            window.addEventListener("resize", fitCanvas);
+            document.getElementById('boot-text').textContent = 'Spouštím hru…';
+            document.getElementById('boot').classList.add('starting');
+            // odchod ze stránky / přepnutí karty: dopsat uložené hry do IndexedDB hned
+            document.addEventListener("visibilitychange", () => {
+                if (document.visibilityState === "hidden") instance.invokeMethod('FlushStorage');
+            });
+            // dva snímky počkat, ať se „Spouštím hru…" stihne vykreslit – první tick pak blokuje
+            window.requestAnimationFrame(() => window.requestAnimationFrame(tickJS));
+        };
+
+        // Během hry: šipky, mezerník a kolečko nesmí posouvat stránku (hlavně v iframu na itch.io).
+        window.addEventListener("keydown", function (event) {
+            if (document.documentElement.classList.contains('playing') && [32, 37, 38, 39, 40].indexOf(event.keyCode) > -1)
+                event.preventDefault();
+        });
+        window.addEventListener("wheel", function (event) {
+            if (document.documentElement.classList.contains('playing')) event.preventDefault();
+        }, { passive: false });
+    </script>
+</body>
+</html>

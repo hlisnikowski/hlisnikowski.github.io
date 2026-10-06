@@ -1,0 +1,177 @@
+:root {
+    --bg: #14121a;
+    --panel: #1e1b26;
+    --line: #34303f;
+    --text: #e8e0c8;
+    --muted: #a59d8a;
+    --accent: #e0a540;
+    --accent-dark: #a8741f;
+    --stage: #2f6db5;        /* modrá plocha kolem hry */
+    --stage-dark: #1c4a85;
+}
+
+html, body {
+    margin: 0;
+    min-height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+    line-height: 1.5;
+}
+
+[hidden] { display: none !important; }
+
+/* ── Úvodní stránka ─────────────────────────────────────────── */
+
+#landing {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 48px 16px 32px;
+}
+
+.hero { text-align: center; margin-bottom: 40px; }
+
+.hero h1 {
+    margin: 0;
+    font-size: clamp(2.2rem, 7vw, 3.6rem);
+    letter-spacing: 0.06em;
+    color: var(--accent);
+    text-shadow: 4px 4px 0 #000;
+}
+
+.tagline { margin: 8px 0 28px; font-size: 1.15rem; color: var(--text); }
+
+#play {
+    font: inherit;
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 14px 44px;
+    color: #1a1208;
+    background: var(--accent);
+    border: none;
+    border-bottom: 5px solid var(--accent-dark);
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+#play:hover { filter: brightness(1.1); }
+#play:active { transform: translateY(3px); border-bottom-width: 2px; }
+
+.hint { margin-top: 14px; font-size: 0.9rem; color: var(--muted); }
+
+section {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 4px 20px 16px;
+    margin-bottom: 20px;
+}
+
+section h2 { font-size: 1.15rem; color: var(--accent); margin: 16px 0 8px; }
+
+.note { color: var(--muted); font-size: 0.92rem; }
+
+.keys { width: 100%; border-collapse: collapse; }
+.keys td { padding: 6px 0; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.keys tr:last-child td { border-bottom: none; }
+.keys td:last-child { text-align: right; white-space: nowrap; }
+
+kbd {
+    display: inline-block;
+    min-width: 1.4em;
+    margin-left: 4px;
+    padding: 1px 7px;
+    font: 600 0.85rem/1.5 Consolas, 'Courier New', monospace;
+    text-align: center;
+    color: var(--text);
+    background: #2a2633;
+    border: 1px solid #4a4457;
+    border-bottom-width: 3px;
+    border-radius: 4px;
+}
+
+footer { text-align: center; color: var(--muted); font-size: 0.85rem; margin-top: 28px; }
+
+/* ── Hra ────────────────────────────────────────────────────── */
+
+/* Hra = plátno 800×600 uprostřed modré plochy (menší okno → zmenší se, poměr 4:3 drží).
+   Velikost plátna = rozlišení hry (index.html fitCanvas); víc než 2048 px by KNI (profil Reach) neuneslo. */
+html.playing, html.playing body {
+    overflow: hidden;
+    height: 100%;
+    background: radial-gradient(ellipse at center, var(--stage) 0%, var(--stage-dark) 100%) fixed;
+}
+
+#canvasHolder {
+    position: fixed;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: min(800px, 100vw, calc(100vh * 4 / 3));
+    aspect-ratio: 4 / 3;
+    background: #000;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.45);
+}
+
+#theCanvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    outline: none;
+    image-rendering: pixelated;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+#boot {
+    position: fixed;
+    inset: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    background: radial-gradient(ellipse at center, var(--stage) 0%, var(--stage-dark) 100%);
+}
+
+#boot .title { font-size: 1.6rem; letter-spacing: 0.06em; color: #fff; text-shadow: 3px 3px 0 rgba(0, 0, 0, 0.35); }
+
+/* Blazor během stahování nastavuje --blazor-load-percentage na <html> */
+#boot .bar {
+    width: min(320px, 70vw);
+    height: 10px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    overflow: hidden;
+}
+
+#boot .fill {
+    height: 100%;
+    width: var(--blazor-load-percentage, 0%);
+    background: var(--accent);
+    transition: width 0.2s;
+}
+
+#boot-text { color: #dce8f7; font-size: 0.95rem; }
+#boot:not(.starting) #boot-text::after { content: " " var(--blazor-load-percentage-text, ""); }
+/* po stažení: proužek plný, hra se staví */
+#boot.starting .fill { width: 100%; animation: pulse 1s ease-in-out infinite alternate; }
+@keyframes pulse { from { opacity: 0.55; } to { opacity: 1; } }
+
+#blazor-error-ui {
+    display: none;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 1000;
+    padding: 0.6rem 1.25rem;
+    background: #fff3c4;
+    color: #000;
+}
+
+#blazor-error-ui .dismiss { cursor: pointer; position: absolute; right: 0.75rem; top: 0.5rem; }
